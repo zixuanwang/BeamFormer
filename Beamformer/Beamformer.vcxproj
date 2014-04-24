@@ -73,8 +73,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(KINECTSDK10_DIR)\inc;C:\Dropbox\microsoft\code\Audio\audio\micarray\4mic\Inc;C:\Users\danwa\Documents\GitHub\beam\src\beam\lib;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Dropbox\microsoft\code\Audio\audio\micarray\Debug;C:\Users\danwa\Documents\GitHub\beam\lib\Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\danwa\Documents\GitHub\beam\src\beam\lib;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\danwa\Documents\GitHub\beam\lib\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -111,7 +111,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>MicArray.lib;libbeam.lib;Msdmo.lib;dmoguids.lib;amstrmid.lib;wmcodecdspuuid.lib;winmm.lib;strmiids.lib;mfplat.lib;mfreadwrite.lib;mfuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libbeam.lib;Msdmo.lib;dmoguids.lib;amstrmid.lib;wmcodecdspuuid.lib;winmm.lib;strmiids.lib;mfplat.lib;mfreadwrite.lib;mfuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

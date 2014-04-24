@@ -30,7 +30,6 @@ int main(int argc, char* argv[]){
 		outputFormat.nAvgBytesPerSec = waveFormat.nBlockAlign * waveFormat.nSamplesPerSec;
 		outputFormat.cbSize = 0;
 		Beam::WavWriter ww("c:/users/danwa/desktop/1.wav", 16000, 4);
-
 		// define the buffer
 		int buffer_filled = 0;
 		int buffer_size = 16000 * 8;
