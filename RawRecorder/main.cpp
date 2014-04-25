@@ -1,35 +1,65 @@
+#include "..\AudioCaptureNative\AudioMicArrayCaptureNative.h"
 #include "..\AudioCaptureNative\AudioMicCaptureNative.h"
 #include <chrono>
 #include <condition_variable>
 #include <deque>
 #include <fstream>
 #include <iostream>
+#include <string>
 #include <thread>
 #include <Pipeline.h>
 
 int main(int argc, char* argv[]){
+	if (argc == 1){
+		std::cout << "BeamFormer.exe output_dir" << std::endl;
+		return 0;
+	}
+	std::string output_dir = argv[1];
 	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
 	if (SUCCEEDED(hr)){
-		WAVEFORMATEX waveFormat;
-		waveFormat.wFormatTag = WAVE_FORMAT_PCM;
-		waveFormat.nChannels = 4;
-		waveFormat.wBitsPerSample = 16;
-		waveFormat.nBlockAlign = (waveFormat.wBitsPerSample / 8) * waveFormat.nChannels;
-		waveFormat.nSamplesPerSec = 16000;
-		waveFormat.nAvgBytesPerSec = waveFormat.nBlockAlign * waveFormat.nSamplesPerSec;
-		waveFormat.cbSize = 0;
-		AudioCaptureNative::AudioMicCaptureNative* mMicCapture = new AudioCaptureNative::AudioMicCaptureNative(NULL, &waveFormat);
-		mMicCapture->Start();
+		WAVEFORMATEX rawFormat;
+		rawFormat.wFormatTag = WAVE_FORMAT_PCM;
+		rawFormat.nChannels = 4;
+		rawFormat.wBitsPerSample = 16;
+		rawFormat.nBlockAlign = (rawFormat.wBitsPerSample / 8) * rawFormat.nChannels;
+		rawFormat.nSamplesPerSec = 16000;
+		rawFormat.nAvgBytesPerSec = rawFormat.nBlockAlign * rawFormat.nSamplesPerSec;
+		rawFormat.cbSize = 0;
+
+		WAVEFORMATEX arrayFormat;
+		arrayFormat.wFormatTag = WAVE_FORMAT_PCM;
+		arrayFormat.nChannels = 1;
+		arrayFormat.wBitsPerSample = 16;
+		arrayFormat.nBlockAlign = (arrayFormat.wBitsPerSample / 8) * arrayFormat.nChannels;
+		arrayFormat.nSamplesPerSec = 16000;
+		arrayFormat.nAvgBytesPerSec = arrayFormat.nBlockAlign * arrayFormat.nSamplesPerSec;
+		arrayFormat.cbSize = 0;
+
+		AudioCaptureNative::AudioMicCaptureNative* rawCapture = new AudioCaptureNative::AudioMicCaptureNative(NULL, &rawFormat);
+		rawCapture->Start();
+
+		AudioCaptureNative::AudioMicArrayCaptureNative* arrayCapture = new AudioCaptureNative::AudioMicArrayCaptureNative(0, &arrayFormat);
+		arrayCapture->Start();
 		// define the output
 		WAVEFORMATEX outputFormat;
 		outputFormat.wFormatTag = WAVE_FORMAT_PCM;
 		outputFormat.nChannels = 1;
 		outputFormat.wBitsPerSample = 16;
-		outputFormat.nBlockAlign = (waveFormat.wBitsPerSample / 8) * waveFormat.nChannels;
+		outputFormat.nBlockAlign = (outputFormat.wBitsPerSample / 8) * outputFormat.nChannels;
 		outputFormat.nSamplesPerSec = 16000;
-		outputFormat.nAvgBytesPerSec = waveFormat.nBlockAlign * waveFormat.nSamplesPerSec;
+		outputFormat.nAvgBytesPerSec = outputFormat.nBlockAlign * outputFormat.nSamplesPerSec;
 		outputFormat.cbSize = 0;
-		Beam::WavWriter ww("c:/users/danwa/desktop/1.wav", 16000, 4);
+		
+		std::stringstream ss;
+		ss << output_dir << "/" << "raw.wav";
+		std::string raw_file;
+		std::string array_file;
+		ss >> raw_file;
+		ss << output_dir << "/" << "array.wav";
+		ss >> array_file;
+		Beam::WavWriter rawWriter(raw_file, 16000, 4);
+		Beam::WavWriter arrayWriter(array_file, 16000, 1);
+
 		// define the buffer
 		int buffer_filled = 0;
 		int buffer_size = 16000 * 8;
@@ -42,7 +72,7 @@ int main(int argc, char* argv[]){
 			while (true){
 				std::unique_lock<std::mutex> lk(mutex);
 				int filled = 0;
-				mMicCapture->GetData(buffer + buffer_filled, buffer_size, &filled);
+				rawCapture->GetData(buffer + buffer_filled, buffer_size, &filled);
 				buffer_filled += filled;
 				if (buffer_filled > FRAME_SIZE * 8){
 					condition_var.notify_one();
@@ -72,14 +102,15 @@ int main(int argc, char* argv[]){
 					memcpy(buffer, buffer + frame_size_bytes, buffer_filled - frame_size_bytes);
 					buffer_filled -= frame_size_bytes;
 					// process the frame
-					ww.write(consumer_buffer, frame_size_bytes);
+					rawWriter.write(consumer_buffer, frame_size_bytes);
 				}
 			}
 		});
 		producer.join();
 		consumer.join();
 		delete[] buffer;
-		delete mMicCapture;
+		delete rawCapture;
+		delete arrayCapture;
 		CoUninitialize();
 	}
 	return 0;

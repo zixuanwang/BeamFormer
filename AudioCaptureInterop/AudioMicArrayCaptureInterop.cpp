@@ -9,7 +9,7 @@ using namespace AudioCaptureNative;
 using namespace System;
 using namespace System::Threading;
 
-AudioMicArrayCaptureInterop::AudioMicArrayCaptureInterop(String^ kinectId,
+AudioMicArrayCaptureInterop::AudioMicArrayCaptureInterop(int kinectIndex,
 	AudioWaveFormatInterop^ captureWaveFormat,
 	DataReadyCallback^ callbackFunction,
 	int dataBufferDurationInMilliSecond) :
@@ -42,9 +42,7 @@ AudioMicArrayCaptureInterop::AudioMicArrayCaptureInterop(String^ kinectId,
 	waveFormat.nBlockAlign = captureWaveFormat->nBlockAlign;
 	waveFormat.wBitsPerSample = captureWaveFormat->wBitsPerSample;
 	waveFormat.cbSize = captureWaveFormat->cbSize;
-
-	pin_ptr<const wchar_t> wch = PtrToStringChars(kinectId);
-	mMicCapture = new AudioMicArrayCaptureNative(wch, &waveFormat);
+	mMicCapture = new AudioMicArrayCaptureNative(kinectIndex, &waveFormat);
 
 	mCallback = callbackFunction;
 	mDataBufferDurationInMilliSecond = dataBufferDurationInMilliSecond;

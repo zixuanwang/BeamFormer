@@ -10,7 +10,7 @@ namespace AudioCaptureInterop
 	{
 	public:
 		// default capture device will be used with captureDeviceID=nullptr
-		AudioMicArrayCaptureInterop(System::String^ kinectId,
+		AudioMicArrayCaptureInterop(int kinectIndex,
 			AudioWaveFormatInterop^ captureWaveFormat,
 			DataReadyCallback^ callbackFunction,
 			int callbackIntervalInMilliSecond);

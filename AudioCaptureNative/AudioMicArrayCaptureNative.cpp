@@ -4,12 +4,12 @@
 
 using namespace AudioCaptureNative;
 
-AudioMicArrayCaptureNative::AudioMicArrayCaptureNative(const wchar_t* captureDeviceID,
+AudioMicArrayCaptureNative::AudioMicArrayCaptureNative(int captureDeviceIndex,
 	WAVEFORMATEX* outWavFromat) : mNuiSensor(NULL), mNuiAudioBeam(NULL), 
-	mCaptureResampler(NULL), mPropertyStore(NULL), mIsInitialized(false), mIsCapturing(false), mEnergy(0), mSamples(0), mDeviceId(captureDeviceID)
+	mCaptureResampler(NULL), mPropertyStore(NULL), mIsInitialized(false), mIsCapturing(false), mEnergy(0), mSamples(0), mDeviceIndex(captureDeviceIndex)
 {
 	HRESULT hr;
-	hr = NuiCreateSensorById(captureDeviceID, &mNuiSensor);
+	hr = NuiCreateSensorByIndex(captureDeviceIndex, &mNuiSensor);
 	if (FAILED(hr))
 	{
 		throw std::invalid_argument("Invalid capture device ID");

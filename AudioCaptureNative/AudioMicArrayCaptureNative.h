@@ -13,7 +13,7 @@ namespace AudioCaptureNative
 	class AudioMicArrayCaptureNative
 	{
 	public:
-		AudioMicArrayCaptureNative(const wchar_t* captureDeviceID,
+		AudioMicArrayCaptureNative(int captureDeviceIndex,
 								   WAVEFORMATEX* outWavFromat);
 		~AudioMicArrayCaptureNative();
 		void Start();
@@ -36,7 +36,7 @@ namespace AudioCaptureNative
 		HRESULT InitializeAudioSource();
 		long long mEnergy;
 		long long mSamples;
-		std::wstring mDeviceId;
+		int mDeviceIndex;
 	};
 }
 
