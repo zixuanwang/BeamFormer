@@ -50,65 +50,99 @@ int main(int argc, char* argv[]){
 		outputFormat.nAvgBytesPerSec = outputFormat.nBlockAlign * outputFormat.nSamplesPerSec;
 		outputFormat.cbSize = 0;
 		
-		std::stringstream ss;
-		ss << output_dir << "/" << "raw.wav";
+		std::stringstream raw_ss;
+		std::stringstream array_ss;
+		raw_ss << output_dir << "/" << "raw.wav";
 		std::string raw_file;
 		std::string array_file;
-		ss >> raw_file;
-		ss << output_dir << "/" << "array.wav";
-		ss >> array_file;
+		raw_ss >> raw_file;
+		array_ss << output_dir << "/" << "array.wav";
+		array_ss >> array_file;
 		Beam::WavWriter rawWriter(raw_file, 16000, 4);
 		Beam::WavWriter arrayWriter(array_file, 16000, 1);
+		bool recording = true;
 
-		// define the buffer
-		int buffer_filled = 0;
-		int buffer_size = 16000 * 8;
-		byte* buffer = new byte[buffer_size];
-		std::condition_variable condition_var;
-		std::mutex mutex;
-		int output_offset = 0;
-		// initialize profile
-		std::thread producer([&]{
-			while (true){
-				std::unique_lock<std::mutex> lk(mutex);
+		int raw_buffer_filled = 0;
+		int array_buffer_filled = 0;
+		int raw_buffer_size = 16000 * 8;
+		int array_buffer_size = 16000 * 2;
+		byte* raw_buffer = new byte[raw_buffer_size];
+		byte* array_buffer = new byte[array_buffer_size];
+		std::condition_variable raw_condition_var;
+		std::condition_variable array_condition_var;
+		std::mutex raw_mutex;
+		std::mutex array_mutex;
+		std::thread raw_producer([&]{
+			while (recording){
+				std::unique_lock<std::mutex> lk(raw_mutex);
 				int filled = 0;
-				rawCapture->GetData(buffer + buffer_filled, buffer_size, &filled);
-				buffer_filled += filled;
-				if (buffer_filled > FRAME_SIZE * 8){
-					condition_var.notify_one();
+				rawCapture->GetData(raw_buffer + raw_buffer_filled, raw_buffer_size, &filled);
+				raw_buffer_filled += filled;
+				if (raw_buffer_filled > FRAME_SIZE * 8){
+					raw_condition_var.notify_one();
 				}
 				std::chrono::milliseconds dura(5);
 				std::this_thread::sleep_for(dura);
 			}
+			raw_condition_var.notify_one();
 		});
-		std::thread consumer([&]{
+		std::thread raw_consumer([&]{
 			const int frame_size_bytes = FRAME_SIZE * 8;
 			char consumer_buffer[frame_size_bytes];
-			std::vector<float> input[MAX_MICROPHONES];
-			std::vector<float> input_prev[MAX_MICROPHONES];
-			std::vector<std::complex<float> > frequency_input[MAX_MICROPHONES];
-			std::vector<std::complex<float> > beamformer_output(FRAME_SIZE);
-			std::vector<float> output(2 * FRAME_SIZE);
-			for (int channel = 0; channel < MAX_MICROPHONES; ++channel){
-				input[channel].assign(FRAME_SIZE * 2, 0.f);
-				input_prev[channel].assign(FRAME_SIZE * 2, 0.f);
-				frequency_input[channel].assign(FRAME_SIZE, std::complex<float>(0.f, 0.f));
-			}
-			while (true){
-				std::unique_lock<std::mutex> lk(mutex);
-				condition_var.wait(lk);
-				while (buffer_filled > frame_size_bytes){
-					memcpy(consumer_buffer, buffer, frame_size_bytes);
-					memcpy(buffer, buffer + frame_size_bytes, buffer_filled - frame_size_bytes);
-					buffer_filled -= frame_size_bytes;
+			while (recording){
+				std::unique_lock<std::mutex> lk(raw_mutex);
+				raw_condition_var.wait(lk);
+				while (raw_buffer_filled > frame_size_bytes){
+					memcpy(consumer_buffer, raw_buffer, frame_size_bytes);
+					memcpy(raw_buffer, raw_buffer + frame_size_bytes, raw_buffer_filled - frame_size_bytes);
+					raw_buffer_filled -= frame_size_bytes;
 					// process the frame
 					rawWriter.write(consumer_buffer, frame_size_bytes);
 				}
 			}
 		});
-		producer.join();
-		consumer.join();
-		delete[] buffer;
+
+		std::thread array_producer([&]{
+			while (recording){
+				std::unique_lock<std::mutex> lk(array_mutex);
+				int filled = 0;
+				arrayCapture->GetData(array_buffer + array_buffer_filled, array_buffer_size, &filled);
+				array_buffer_filled += filled;
+				if (array_buffer_filled > FRAME_SIZE * 8){
+					array_condition_var.notify_one();
+				}
+				std::chrono::milliseconds dura(5);
+				std::this_thread::sleep_for(dura);
+			}
+			array_condition_var.notify_one();
+		});
+		std::thread array_consumer([&]{
+			const int frame_size_bytes = FRAME_SIZE * 8;
+			char consumer_buffer[frame_size_bytes];
+			while (recording){
+				std::unique_lock<std::mutex> lk(array_mutex);
+				array_condition_var.wait(lk);
+				while (array_buffer_filled > frame_size_bytes){
+					memcpy(consumer_buffer, array_buffer, frame_size_bytes);
+					memcpy(array_buffer, array_buffer + frame_size_bytes, array_buffer_filled - frame_size_bytes);
+					array_buffer_filled -= frame_size_bytes;
+					// process the frame
+					arrayWriter.write(consumer_buffer, frame_size_bytes);
+				}
+			}
+		});
+		std::thread control([&]{
+			std::string c;
+			std::cin >> c;
+			recording = false;
+		});
+		raw_producer.join();
+		raw_consumer.join();
+		array_producer.join();
+		array_consumer.join();
+		control.join();
+		delete[] raw_buffer;
+		delete[] array_buffer;
 		delete rawCapture;
 		delete arrayCapture;
 		CoUninitialize();
