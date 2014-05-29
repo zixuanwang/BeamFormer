@@ -89,9 +89,9 @@ int main(int argc, char* argv[]){
 					Beam::Pipeline::instance()->preprocess(frequency_input);
 					float angle;
 					Beam::Pipeline::instance()->source_localize(frequency_input, &angle);
-					Beam::Pipeline::instance()->smart_calibration();
+					std::cout << angle << std::endl;
+					Beam::Pipeline::instance()->smart_calibration(frequency_input);
 					Beam::Pipeline::instance()->beamforming(frequency_input, beamformer_output);
-					Beam::Pipeline::instance()->postprocessing(beamformer_output);
 					// copy to input_prev
 					for (int channel = 0; channel < MAX_MICROPHONES; ++channel){
 						input_prev[channel].assign(input[channel].begin(), input[channel].end());
